@@ -15,10 +15,11 @@
     - [ ] Fill the placeholders in the CLI, and copy the entire command to the clipboard
     - [ ] Fuzzy search ([sahilm/fuzzy](https://github.com/sahilm/fuzzy))
 - [/] Manage database
-    - [ ] Support for JSON and YAML files
-        - [ ] JSON
-        - [ ] YAML
-    - [ ] Support for multiple files (hierarchy of commands in the CLI)
+    - [x] Support for JSON and YAML files
+        - [x] JSON
+        - [x] YAML
+    - [/] Support for multiple files (hierarchy of commands in the CLI)
+        - [x] Read commands from all valid files in the directory
         - [ ] Write the commands in a hierarchical data structure
     - [ ] Functionality to add/remove commands
     - [ ] Optional flags and placeholders
