@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func LoadCmds(dbDir string) []CommandSet {
+func loadCmds(dbDir string) []CommandSet {
 	dbDirPath, _ := filepath.Abs(dbDir)
 
 	if _, err := os.Stat(dbDirPath); os.IsNotExist(err) {
