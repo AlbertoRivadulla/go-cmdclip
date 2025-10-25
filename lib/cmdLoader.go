@@ -2,7 +2,6 @@ package lib
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -17,27 +16,27 @@ func LoadCmds(dbDir string) {
 	if _, err := os.Stat(dbDirPath); os.IsNotExist(err) {
 		log.Fatal("Error: ", err.Error())
 	}
-	fmt.Printf("Loading commands from %s...\n", dbDirPath)
+	log.Printf("Loading commands from %s...\n", dbDirPath)
 
-	// TODO: Read the commands in the directory
-
-	commands, err := _loadCmdsFromDir(dbDirPath)
+	commandSets, err := _loadCmdsFromDir(dbDirPath)
 	if err != nil {
 		log.Fatal("Could not load commands: ", err.Error())
 	}
-	if len(commands) == 0 {
+	if len(commandSets) == 0 {
 		log.Fatal("No commands found in the given path")
 	}
 
-	fmt.Printf("\n\nCommands found:\n\n")
+	log.Printf("\n\nCommands found:\n\n")
 
-	for _, cmd := range commands {
-		cmd.print()
+	for _, cmdSet := range commandSets {
+		for _, cmd := range cmdSet.Commands {
+			cmd.print()
+		}
 	}
 }
 
-func _loadCmdsFromDir(directory string) ([]Command, error) {
-	var commands []Command
+func _loadCmdsFromDir(directory string) ([]CommandSet, error) {
+	var commandSets []CommandSet
 
 	// filepath.WalkDir traverses the directory and subdirectories within it, so there is no need to call this function
 	// recursively
@@ -52,36 +51,37 @@ func _loadCmdsFromDir(directory string) ([]Command, error) {
 
 		extension := filepath.Ext(path)
 		if extension == ".yaml" || extension == ".yml" || extension == ".json" {
-			newCmds, err := _loadCmdsFromFile(path)
-			if err != nil {
-				return fmt.Errorf("Failed to load commands in %s. Error: %s", path, err.Error())
+			newCmdSet, err := _loadCmdsFromFile(path)
+			if err != nil || newCmdSet == nil {
+				log.Printf("Could not load commands in %s. Error: %s", path, err.Error())
+				return nil
 			}
-			if len(newCmds) > 0 {
-				commands = append(commands, newCmds...)
+			if len(newCmdSet.Commands) > 0 {
+				commandSets = append(commandSets, *newCmdSet)
 			}
 		}
 
 		return nil
 	})
 
-	return commands, err
+	return commandSets, err
 }
 
-func _loadCmdsFromFile(filePath string) ([]Command, error) {
+func _loadCmdsFromFile(filePath string) (*CommandSet, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	var commands []Command
+	var commandSet CommandSet
 	switch extension := filepath.Ext(filePath); extension {
 	case ".json":
-		err = json.Unmarshal(data, &commands)
+		err = json.Unmarshal(data, &commandSet)
 	case ".yaml":
-		err = yaml.Unmarshal(data, &commands)
+		err = yaml.Unmarshal(data, &commandSet)
 	default:
 		return nil, nil
 	}
 
-	return commands, err
+	return &commandSet, err
 }
