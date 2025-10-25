@@ -14,6 +14,7 @@
     - [ ] Move around with Vim commands
     - [ ] Fill the placeholders in the CLI, and copy the entire command to the clipboard
     - [ ] Fuzzy search ([sahilm/fuzzy](https://github.com/sahilm/fuzzy))
+    - [ ] Display help at the bottom (this requires creating another flex in the vertical direction, that will contain the current one as the first element and a text view below it)
 - [/] Manage database
     - [x] Support for JSON and YAML files
         - [x] JSON
