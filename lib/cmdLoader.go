@@ -10,17 +10,19 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func LoadCmds(dbDir string) {
+func LoadCmds(dbDir string) []CommandSet {
 	dbDirPath, _ := filepath.Abs(dbDir)
 
 	if _, err := os.Stat(dbDirPath); os.IsNotExist(err) {
 		log.Fatal("Error: ", err.Error())
+		return nil
 	}
 	log.Printf("Loading commands from %s...\n", dbDirPath)
 
 	commandSets, err := _loadCmdsFromDir(dbDirPath)
 	if err != nil {
 		log.Fatal("Could not load commands: ", err.Error())
+		return nil
 	}
 	if len(commandSets) == 0 {
 		log.Fatal("No commands found in the given path")
@@ -28,11 +30,7 @@ func LoadCmds(dbDir string) {
 
 	log.Printf("\n\nCommands found:\n\n")
 
-	for _, cmdSet := range commandSets {
-		for _, cmd := range cmdSet.Commands {
-			cmd.print()
-		}
-	}
+	return commandSets
 }
 
 func _loadCmdsFromDir(directory string) ([]CommandSet, error) {

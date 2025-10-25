@@ -16,7 +16,7 @@ type CommandSet struct {
 	Commands []Command `json:"commands" yaml:"commands"`
 }
 
-func (command* Command) print() {
+func (command* Command) Print() {
 	fmt.Printf("Name: %s\nDescription: %s\nCommand: %s\n\n", 
 		command.Name, 
 		command.Description, 
