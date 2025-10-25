@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	// "github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	// "golang.design/x/clipboard"
 )
 
 type CliApp struct {
@@ -37,6 +38,13 @@ func (cliApp* CliApp) Initialize(dbDir string) {
 	cliApp.CurrentCmdSetIdx = 0
 	cliApp.CurrentCmdIdx = 0
 
+	// // Initialize the clipboard handler
+	// err := clipboard.Init()
+	// if err != nil {
+	// 	log.Fatal("Error initializing the clipboard handler: %s", err.Error())
+	// 	  panic(err)
+	// }
+
 	// Load the commands recursively
 	cliApp.CmdSets = loadCmds(dbDir)
 
@@ -67,6 +75,8 @@ func (cliApp* CliApp) setupView() {
 		SetTitle("Commands")
 	cliApp.CmdContentText = tview.NewTextView().
 		SetDynamicColors(true)
+	cliApp.CmdContentText.SetBorder(true).
+		SetBorderPadding(5, 5, 2, 2)
 
 	// Create the second column
 	cliApp.SecondColFlex = tview.NewFlex().
@@ -82,6 +92,8 @@ func (cliApp* CliApp) setupView() {
 		AddItem(cliApp.CmdContentText, 0, 2, false)
 	
 	cliApp.setupCmdSets()
+
+	cliApp.setupInputHandling()
 }
 
 func (cliApp* CliApp) setupCmdSets() {
@@ -118,14 +130,109 @@ func (cliApp* CliApp) setupCmds(index int, mainText string, secondaryText string
 func (cliApp* CliApp) setupCmdContent(index int, mainText string, secondaryText string, shortcut rune) {
 	cliApp.CurrentCmdIdx = index
 	command := cliApp.CmdSets[cliApp.CurrentCmdSetIdx].Commands[index]
-	cliApp.CmdContentText.SetText(fmt.Sprintf("%s\n\n%s", command.Description, command.Command))
+	cliApp.CmdContentText.SetText(fmt.Sprintf("[::i]%s[::-]\n\n\n\n%s", command.Description, command.Command))
 
 	// TODO: Improve the formatting of this
+}
+
+func (cliApp* CliApp) setupInputHandling() {
+	
+	// Global navigation
+	cliApp.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Rune() == 'q' || event.Key() == tcell.KeyCtrlC {
+			cliApp.App.Stop()
+			return nil
+		}
+		return event
+	})
+
+	// Navigation inside the lists
+	handleListNavigation := func(event *tcell.EventKey, list *tview.List, currIdx *int) *tcell.EventKey {
+		switch event.Rune() {
+		case 'j':
+			index := list.GetCurrentItem() + 1
+			if index < 0 {
+				index = list.GetItemCount() - 1
+			}
+			if index == list.GetItemCount() {
+				index = 0
+			}
+			list.SetCurrentItem(index)
+			*currIdx = index
+		case 'k':
+			index := list.GetCurrentItem() - 1
+			if index < 0 {
+				index = list.GetItemCount() - 1
+			}
+			if index == list.GetItemCount() {
+				index = 0
+			}
+			list.SetCurrentItem(index)
+			*currIdx = index
+		case 'l': // Move to the right
+			if list == cliApp.CmdSetList {
+				cliApp.App.SetFocus(cliApp.CmdList)
+				return nil
+			} else if list == cliApp.CmdList {
+				cliApp.App.SetFocus(cliApp.CmdContentText)
+				return nil
+			}
+		case 'h': // Move to the left
+			if list == cliApp.CmdList {
+				cliApp.App.SetFocus(cliApp.CmdSetList)
+				return nil
+			}
+		case 'y':
+			// TODO: copy the selected command to the clipboard and close the app
+			// This should only work if the command has no placeholder fields
+			// Otherwise show a message in the status line
+			if list == cliApp.CmdList {
+				// cmdText := cliApp.CmdSets[cliApp.CurrentCmdSetIdx].Commands[cliApp.CurrentCmdIdx].Command
+				// clipboard.Write(clipboard.FmtText, []byte(cmdText))
+				cliApp.App.Stop()
+			}
+
+		}
+
+		if event.Key() == tcell.KeyEsc {
+			if list == cliApp.CmdSetList {
+				cliApp.App.Stop()
+				return nil
+			} else if list == cliApp.CmdList {
+				cliApp.App.SetFocus(cliApp.CmdSetList)
+				return nil
+			}
+		}
+
+		return event
+	}
+	cliApp.CmdSetList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		return handleListNavigation(event, cliApp.CmdSetList, &cliApp.CurrentCmdSetIdx)
+	})
+	cliApp.CmdList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		return handleListNavigation(event, cliApp.CmdList, &cliApp.CurrentCmdIdx)
+	})
+
+	// Input in the command content TextView
+	cliApp.CmdContentText.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Rune() {
+		case 'h':
+			cliApp.App.SetFocus(cliApp.CmdList)
+		}
+
+		if event.Key() == tcell.KeyEsc {
+			cliApp.App.SetFocus(cliApp.CmdList)
+		}
+
+		// TODO: Press enter to copy the shortcut to the clipboard and exit the app
+
+		return event
+	})
 }
 
 func (cliApp* CliApp) Run() {
 	err := cliApp.App.Run()
 	if err != nil {
-		log.Fatal("Error in CLI app runtime: ", err.Error())
+		log.Fatal("Error in CLI app runtime %s: ", err.Error())
 	}
 }
