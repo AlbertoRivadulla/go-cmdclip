@@ -2,13 +2,13 @@
 
 
 ## TODO
-- [/] Basic CLI app
-    - [/] Configuration of the app
+- [x] Basic CLI app
+    - [x] Configuration of the app
         - [x] Flag `--dbdir` to tell the app where the database is located (with default in `$HOME/cmdclip/database/`)
-- [/] Interface of the app
+- [x] Interface of the app
     - [x] Interactive prompt with [tview](https://github.com/rivo/tview)
-    - [ ] Add a status line at the bottom
-    - [ ] Display help at the bottom (this requires creating another flex in the vertical direction, that will contain the current one as the first element and a text view below it)
+    - [x] Add a status line at the bottom
+    - [x] Display help at the bottom
 - [/] Interaction with the app
     - [x] Move around with Vim key bindings (`hjkl`) 
     - [/] Copy the selected command to the clipboard
@@ -26,7 +26,7 @@
     - [/] Support for multiple files (hierarchy of commands in the CLI)
         - [x] Read commands from all valid files in the directory
         - [ ] Write the commands in a hierarchical data structure
-    - [ ] Functionality to add/remove commands
     - [ ] Optional flags and placeholders
 - [ ] Future improvements
+    - [ ] Functionality to add/remove commands from the CLI
     - [ ] Switch the interface library to [Bubbletea](https://github.com/charmbracelet/bubbletea)
