@@ -4,10 +4,16 @@ import (
 	"fmt"
 )
 
+type Placeholder struct {
+	Name string
+	BeginIdx int
+}
+
 type Command struct {
 	Name string `json:"name" yaml:"name"`
 	Description string `json:"description" yaml:"description"`
 	Command string `json:"command" yaml:"command"`
+	Placeholders []Placeholder
 }
 
 type CommandSet struct {

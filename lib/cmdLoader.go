@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -48,7 +50,7 @@ func _loadCmdsFromDir(directory string) ([]CommandSet, error) {
 			newCmdSet, err := _loadCmdsFromFile(path)
 			if err != nil || newCmdSet == nil {
 				log.Printf("Could not load commands in %s. Error: %s", path, err.Error())
-				return nil
+				return err
 			}
 			if len(newCmdSet.Commands) > 0 {
 				commandSets = append(commandSets, *newCmdSet)
@@ -77,5 +79,33 @@ func _loadCmdsFromFile(filePath string) (*CommandSet, error) {
 		return nil, nil
 	}
 
+	if err != nil {
+		log.Printf("Could not load commands in %s. Error: %s", filePath, err.Error())
+	}
+
+	err = _processPlaceholders(commandSet)
+	if err != nil {
+		return &commandSet, err
+	}
+
 	return &commandSet, err
+}
+
+func _processPlaceholders(commandSet CommandSet) error {
+	for i := range commandSet.Commands {
+		// Extract placeholders from the template using regex
+		re := regexp.MustCompile(`\{\{(\w+)\}\}`)
+		matches := re.FindAllStringSubmatch(commandSet.Commands[i].Command, -1)
+		for _, match := range matches {
+			index := strings.Index(commandSet.Commands[i].Command, match[0])
+			commandSet.Commands[i].Placeholders = append(commandSet.Commands[i].Placeholders, Placeholder{
+				Name: match[1],
+				BeginIdx: index,
+			})
+		}
+
+		// TODO: Make sure that placeholders are not repeated
+	}
+
+	return nil
 }

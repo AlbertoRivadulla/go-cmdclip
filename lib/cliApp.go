@@ -169,9 +169,17 @@ func (cliApp* CliApp) setupCmds(index int, mainText string, secondaryText string
 func (cliApp* CliApp) setupCmdContent(index int, mainText string, secondaryText string, shortcut rune) {
 	cliApp.CurrentCmdIdx = index
 	command := cliApp.CmdSets[cliApp.CurrentCmdSetIdx].Commands[index]
-	cliApp.CmdContentTextView.SetText(fmt.Sprintf("[::b]%s[::-]\n\n[::i]%s[::-]\n\n\n\n%s", command.Name, command.Description, command.Command))
-
-	// TODO: Improve the formatting of this
+	contentText := fmt.Sprintf("[::b]%s[::-]\n\n[::i]%s[::-]\n\n\n\n[green]%s[-:-:-]", 
+		command.Name, 
+		command.Description, 
+		command.Command)
+	if len(command.Placeholders) > 0 {
+		contentText += "\n\n\n\nPlaceholders:\n"
+		for _, placeholder := range command.Placeholders {
+			contentText += fmt.Sprintf("\n\t- %s, index %d", placeholder.Name, placeholder.BeginIdx)
+		}
+	}
+	cliApp.CmdContentTextView.SetText(contentText)
 }
 
 func (cliApp* CliApp) setupStatusBar() {

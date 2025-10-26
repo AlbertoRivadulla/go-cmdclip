@@ -18,7 +18,7 @@
     - [ ] Fuzzy search with `/` ([sahilm/fuzzy](https://github.com/sahilm/fuzzy))
 - [/] Allow placeholders in commands
     - [x] Write placeholders in the command files with `{{name}}`
-    - [ ] Parse the placeholders when reading the command databasekk
+    - [x] Parse the placeholders when reading the command databasekk
     - [ ] Highlight the placeholders when displaying the command description
     - [ ] Fill the placeholders in the CLI, and copy the entire command to the clipboard
     - [ ] Show an error when trying to copy a command with an unfilled placeholder value
