@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func LoadCmds(dbDir string) []CommandSet {
+func loadCmds(dbDir string) []CommandSet {
 	dbDirPath, _ := filepath.Abs(dbDir)
 
 	if _, err := os.Stat(dbDirPath); os.IsNotExist(err) {
@@ -27,8 +27,6 @@ func LoadCmds(dbDir string) []CommandSet {
 	if len(commandSets) == 0 {
 		log.Fatal("No commands found in the given path")
 	}
-
-	log.Printf("\n\nCommands found:\n\n")
 
 	return commandSets
 }

@@ -4,32 +4,21 @@ import (
 	"cmdclip/lib"
 
 	"flag"
-	"fmt"
+	// "fmt"
 	// "io"
 	// "log"
+
+	// "github.com/rivo/tview"
 )
 
 func main() {
 	dbDirPath := flag.String("dbdir", "$HOME/cmdclip/database", "the directory of the database")
+	flag.Parse()
 
 	// log.SetOutput(io.Discard)
 
-	flag.Parse()
+	var cliApp lib.CliApp
+	cliApp.Initialize(*dbDirPath)
 
-	var commandSets []lib.CommandSet
-	commandSets = lib.LoadCmds(*dbDirPath)
-	for _, cmdSet := range commandSets {
-		for _, cmd := range cmdSet.Commands {
-			cmd.Print()
-		}
-	}
-
-	// TODO: Initialize the CLI app
-
-
-	// TODO: Pass the commands to the app
-
-
-	// TODO: Start app loop
+	cliApp.Run()
 }
-
