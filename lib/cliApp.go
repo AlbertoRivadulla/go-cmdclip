@@ -46,12 +46,17 @@ func (cliApp* CliApp) Initialize(dbDir string) {
 	err := clipboard.Init()
 	if err != nil {
 		log.Fatal("Error initializing the clipboard handler: %s", err.Error())
-		  panic(err)
 	}
 
+	cliApp.setupColors()
+
 	// Load the commands recursively
-	cliApp.CmdSets = loadCmds(dbDir)
-	cliApp.StatusCh <- fmt.Sprintf("[green]Loaded shortcuts from %s[::-]", dbDir)
+	cliApp.CmdSets, err = loadCmds(dbDir)
+	if err != nil {
+		cliApp.StatusCh <- fmt.Sprintf("[red]%s[::-]", err.Error())
+	} else {
+		cliApp.StatusCh <- fmt.Sprintf("[green]Loaded shortcuts from %s[::-]", dbDir)
+	}
 
 	cliApp.App = tview.NewApplication()
 
@@ -62,8 +67,13 @@ func (cliApp* CliApp) Initialize(dbDir string) {
 
 	// Focus on the panel with the list of command sets
 	cliApp.App.SetFocus(cliApp.CmdSetList)
+}
 
-	// cliApp.StatusCh <- fmt.Sprintf("[green]Loaded shortcuts from %s[::-]", dbDir)
+func (cliApp* CliApp) setupColors() {
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorBlack
+	tview.Styles.BorderColor = tcell.ColorLightGray
+	tview.Styles.TitleColor = tcell.ColorBlue
+	tview.Styles.PrimaryTextColor = tcell.ColorWhite
 }
 
 func (cliApp* CliApp) setupView() {
@@ -71,6 +81,7 @@ func (cliApp* CliApp) setupView() {
 	cliApp.CmdSetList = tview.NewList().
 		ShowSecondaryText(false)
 	cliApp.CmdSetList.SetBorder(true).
+		SetBorderPadding(1, 1, 1, 1).
 		SetTitle("Command sets")
 	cliApp.CmdSetDescrTextView = tview.NewTextView().
 		SetDynamicColors(true)
@@ -79,14 +90,16 @@ func (cliApp* CliApp) setupView() {
 	cliApp.CmdList = tview.NewList().
 		ShowSecondaryText(false)
 	cliApp.CmdList.SetBorder(true).
+		SetBorderPadding(1, 1, 1, 1).
 		SetTitle("Commands")
 	cliApp.CmdContentTextView = tview.NewTextView().
 		SetDynamicColors(true)
 	cliApp.CmdContentTextView.SetBorder(true).
-		SetBorderPadding(5, 5, 2, 2)
+		SetBorderPadding(5, 5, 2, 2).
+		SetTitle("Command contents")
 	cliApp.StatusTextView = tview.NewTextView().
 		SetDynamicColors(true)
-	cliApp.StatusTextView.SetBorder(true).
+	cliApp.StatusTextView.SetBorder(false).
 		SetBorderPadding(0, 0, 2, 2).
 		SetTitle("Status")
 	cliApp.ShortcutsInfoTextView = tview.NewTextView().
@@ -122,16 +135,18 @@ func (cliApp* CliApp) setupView() {
 
 func (cliApp* CliApp) setupCmdSets() {
 	cliApp.CmdSetList.Clear()
-	for _, cmdSet := range cliApp.CmdSets {
-		cliApp.CmdSetList.AddItem(cmdSet.Title, "", 0, func() {
-			// The function to run when a command set is selected
-			cliApp.App.SetFocus(cliApp.CmdList)
-		})
+	if cliApp.CmdSets != nil {
+		for _, cmdSet := range cliApp.CmdSets {
+			cliApp.CmdSetList.AddItem(cmdSet.Title, "", 0, func() {
+				// The function to run when a command set is selected
+				cliApp.App.SetFocus(cliApp.CmdList)
+			})
+		}
+
+		cliApp.CmdSetList.SetChangedFunc(cliApp.setupCmds)
+
+		cliApp.setupCmds(cliApp.CurrentCmdSetIdx, "", "", 0)
 	}
-
-	cliApp.CmdSetList.SetChangedFunc(cliApp.setupCmds)
-
-	cliApp.setupCmds(cliApp.CurrentCmdSetIdx, "", "", 0)
 }
 
 func (cliApp* CliApp) setupCmds(index int, mainText string, secondaryText string, shortcut rune) {
@@ -154,7 +169,7 @@ func (cliApp* CliApp) setupCmds(index int, mainText string, secondaryText string
 func (cliApp* CliApp) setupCmdContent(index int, mainText string, secondaryText string, shortcut rune) {
 	cliApp.CurrentCmdIdx = index
 	command := cliApp.CmdSets[cliApp.CurrentCmdSetIdx].Commands[index]
-	cliApp.CmdContentTextView.SetText(fmt.Sprintf("[::i]%s[::-]\n\n\n\n%s", command.Description, command.Command))
+	cliApp.CmdContentTextView.SetText(fmt.Sprintf("[::b]%s[::-]\n\n[::i]%s[::-]\n\n\n\n%s", command.Name, command.Description, command.Command))
 
 	// TODO: Improve the formatting of this
 }
@@ -167,7 +182,6 @@ func (cliApp* CliApp) setupStatusBar() {
 			status = <-cliApp.StatusCh
 			cliApp.StatusTextView.SetText(status)
 			cliApp.App.Draw()
-			// cliApp.StatusTextView.Clear()
 		}
 	}()
 }

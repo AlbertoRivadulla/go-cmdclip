@@ -2,6 +2,7 @@ package lib
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -10,25 +11,22 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func loadCmds(dbDir string) []CommandSet {
+func loadCmds(dbDir string) ([]CommandSet, error) {
 	dbDirPath, _ := filepath.Abs(dbDir)
 
 	if _, err := os.Stat(dbDirPath); os.IsNotExist(err) {
-		log.Fatal("Error: ", err.Error())
-		return nil
+		return nil, fmt.Errorf("Error: %s", err.Error())
 	}
-	log.Printf("Loading commands from %s...\n", dbDirPath)
 
 	commandSets, err := _loadCmdsFromDir(dbDirPath)
 	if err != nil {
-		log.Fatal("Could not load commands: ", err.Error())
-		return nil
+		return nil, err
 	}
 	if len(commandSets) == 0 {
-		log.Fatal("No commands found in the given path")
+		return nil, fmt.Errorf("No commands found in the path: %s", dbDir)
 	}
 
-	return commandSets
+	return commandSets, nil
 }
 
 func _loadCmdsFromDir(directory string) ([]CommandSet, error) {
