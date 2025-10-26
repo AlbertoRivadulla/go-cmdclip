@@ -11,13 +11,17 @@
     - [x] Display help at the bottom
 - [/] Interaction with the app
     - [x] Move around with Vim key bindings (`hjkl`) 
-    - [/] Copy the selected command to the clipboard
+    - [x] Copy the selected command to the clipboard
         - [x] Copy it with `y`, when focused on the list of commands or the command description
         - [x] Copy it with `Enter` when focused on the command description
-        - [ ] If the command has placeholder values, show an error in the status box
     - [ ] Run the command directly, pressing `Enter` when focused on the command description component
-    - [ ] Fill the placeholders in the CLI, and copy the entire command to the clipboard
     - [ ] Fuzzy search with `/` ([sahilm/fuzzy](https://github.com/sahilm/fuzzy))
+- [/] Allow placeholders in commands
+    - [x] Write placeholders in the command files with `{{name}}`
+    - [ ] Parse the placeholders when reading the command databasekk
+    - [ ] Highlight the placeholders when displaying the command description
+    - [ ] Fill the placeholders in the CLI, and copy the entire command to the clipboard
+    - [ ] Show an error when trying to copy a command with an unfilled placeholder value
 - [/] Manage database
     - [x] Support for JSON and YAML files
         - [x] JSON
