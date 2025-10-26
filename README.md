@@ -11,8 +11,9 @@
     - [ ] Display help at the bottom (this requires creating another flex in the vertical direction, that will contain the current one as the first element and a text view below it)
 - [/] Interaction with the app
     - [x] Move around with Vim key bindings (`hjkl`) 
-    - [ ] Copy the selected command to the clipboard
-        - [ ] Copy it with `y`, when focused on the list of commands or the command description
+    - [/] Copy the selected command to the clipboard
+        - [x] Copy it with `y`, when focused on the list of commands or the command description
+        - [x] Copy it with `Enter` when focused on the command description
         - [ ] If the command has placeholder values, show an error in the status box
     - [ ] Run the command directly, pressing `Enter` when focused on the command description component
     - [ ] Fill the placeholders in the CLI, and copy the entire command to the clipboard

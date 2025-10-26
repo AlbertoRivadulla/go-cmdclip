@@ -28,8 +28,6 @@ func loadCmds(dbDir string) []CommandSet {
 		log.Fatal("No commands found in the given path")
 	}
 
-	log.Printf("\n\nCommands found:\n\n")
-
 	return commandSets
 }
 

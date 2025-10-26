@@ -6,7 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	// "golang.design/x/clipboard"
+	"golang.design/x/clipboard"
 )
 
 type CliApp struct {
@@ -38,12 +38,12 @@ func (cliApp* CliApp) Initialize(dbDir string) {
 	cliApp.CurrentCmdSetIdx = 0
 	cliApp.CurrentCmdIdx = 0
 
-	// // Initialize the clipboard handler
-	// err := clipboard.Init()
-	// if err != nil {
-	// 	log.Fatal("Error initializing the clipboard handler: %s", err.Error())
-	// 	  panic(err)
-	// }
+	// Initialize the clipboard handler
+	err := clipboard.Init()
+	if err != nil {
+		log.Fatal("Error initializing the clipboard handler: %s", err.Error())
+		  panic(err)
+	}
 
 	// Load the commands recursively
 	cliApp.CmdSets = loadCmds(dbDir)
@@ -183,15 +183,9 @@ func (cliApp* CliApp) setupInputHandling() {
 				return nil
 			}
 		case 'y':
-			// TODO: copy the selected command to the clipboard and close the app
-			// This should only work if the command has no placeholder fields
-			// Otherwise show a message in the status line
 			if list == cliApp.CmdList {
-				// cmdText := cliApp.CmdSets[cliApp.CurrentCmdSetIdx].Commands[cliApp.CurrentCmdIdx].Command
-				// clipboard.Write(clipboard.FmtText, []byte(cmdText))
-				cliApp.App.Stop()
+				cliApp.copyCurrentCmdToClipboard()
 			}
-
 		}
 
 		if event.Key() == tcell.KeyEsc {
@@ -218,16 +212,29 @@ func (cliApp* CliApp) setupInputHandling() {
 		switch event.Rune() {
 		case 'h':
 			cliApp.App.SetFocus(cliApp.CmdList)
+		case 'y':
+			cliApp.copyCurrentCmdToClipboard()
 		}
 
 		if event.Key() == tcell.KeyEsc {
 			cliApp.App.SetFocus(cliApp.CmdList)
 		}
 
-		// TODO: Press enter to copy the shortcut to the clipboard and exit the app
+		if event.Key() == tcell.KeyEnter {
+			cliApp.copyCurrentCmdToClipboard()
+		}
 
 		return event
 	})
+}
+
+func (cliApp* CliApp) copyCurrentCmdToClipboard() {
+	// TODO: copy the selected command to the clipboard and close the app
+	// This should only work if the command has no placeholder fields
+	// Otherwise show a message in the status line
+	cmdText := cliApp.CmdSets[cliApp.CurrentCmdSetIdx].Commands[cliApp.CurrentCmdIdx].Command
+	clipboard.Write(clipboard.FmtText, []byte(cmdText))
+	cliApp.App.Stop()
 }
 
 func (cliApp* CliApp) Run() {
