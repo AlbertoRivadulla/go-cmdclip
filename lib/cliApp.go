@@ -18,12 +18,15 @@ type CliApp struct {
 
 	App *tview.Application
 	MainView *tview.Flex
+	MainColsFlex *tview.Flex
 	SecondColFlex *tview.Flex
 
 	CmdSetList *tview.List
-	CmdSetDescrText *tview.TextView
+	CmdSetDescrTextView *tview.TextView
 	CmdList *tview.List
-	CmdContentText *tview.TextView
+	CmdContentTextView *tview.TextView
+	StatusTextView *tview.TextView
+	ShortcutsInfoTextView *tview.TextView
 
 	CurrentCmdSetIdx int
 	CurrentCmdIdx int
@@ -34,7 +37,8 @@ type CliApp struct {
 
 func (cliApp* CliApp) Initialize(dbDir string) {
 	// Initialize variables
-	cliApp.StatusCh = make(chan string, 1)
+	// cliApp.StatusCh = make(chan string, 1)
+	cliApp.StatusCh = make(chan string, 2)
 	cliApp.CurrentCmdSetIdx = 0
 	cliApp.CurrentCmdIdx = 0
 
@@ -42,11 +46,17 @@ func (cliApp* CliApp) Initialize(dbDir string) {
 	err := clipboard.Init()
 	if err != nil {
 		log.Fatal("Error initializing the clipboard handler: %s", err.Error())
-		  panic(err)
 	}
 
+	cliApp.setupColors()
+
 	// Load the commands recursively
-	cliApp.CmdSets = loadCmds(dbDir)
+	cliApp.CmdSets, err = loadCmds(dbDir)
+	if err != nil {
+		cliApp.StatusCh <- fmt.Sprintf("[red]%s[::-]", err.Error())
+	} else {
+		cliApp.StatusCh <- fmt.Sprintf("[green]Loaded shortcuts from %s[::-]", dbDir)
+	}
 
 	cliApp.App = tview.NewApplication()
 
@@ -59,66 +69,95 @@ func (cliApp* CliApp) Initialize(dbDir string) {
 	cliApp.App.SetFocus(cliApp.CmdSetList)
 }
 
+func (cliApp* CliApp) setupColors() {
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorBlack
+	tview.Styles.BorderColor = tcell.ColorLightGray
+	tview.Styles.TitleColor = tcell.ColorBlue
+	tview.Styles.PrimaryTextColor = tcell.ColorWhite
+}
+
 func (cliApp* CliApp) setupView() {
-	// Initialize the different elements in the app
+	// Initialize the different elements of the GUI
 	cliApp.CmdSetList = tview.NewList().
 		ShowSecondaryText(false)
 	cliApp.CmdSetList.SetBorder(true).
+		SetBorderPadding(1, 1, 1, 1).
 		SetTitle("Command sets")
-	cliApp.CmdSetDescrText = tview.NewTextView().
+	cliApp.CmdSetDescrTextView = tview.NewTextView().
 		SetDynamicColors(true)
-	cliApp.CmdSetDescrText.SetBorder(true).
+	cliApp.CmdSetDescrTextView.SetBorder(true).
 		SetBorderPadding(1, 1, 2, 2)
 	cliApp.CmdList = tview.NewList().
 		ShowSecondaryText(false)
 	cliApp.CmdList.SetBorder(true).
+		SetBorderPadding(1, 1, 1, 1).
 		SetTitle("Commands")
-	cliApp.CmdContentText = tview.NewTextView().
+	cliApp.CmdContentTextView = tview.NewTextView().
 		SetDynamicColors(true)
-	cliApp.CmdContentText.SetBorder(true).
-		SetBorderPadding(5, 5, 2, 2)
+	cliApp.CmdContentTextView.SetBorder(true).
+		SetBorderPadding(5, 5, 2, 2).
+		SetTitle("Command contents")
+	cliApp.StatusTextView = tview.NewTextView().
+		SetDynamicColors(true)
+	cliApp.StatusTextView.SetBorder(false).
+		SetBorderPadding(0, 0, 2, 2).
+		SetTitle("Status")
+	cliApp.ShortcutsInfoTextView = tview.NewTextView().
+		SetDynamicColors(true)
+	cliApp.ShortcutsInfoTextView.SetBorder(false).
+		SetBorderPadding(0, 0, 2, 2)
 
 	// Create the second column
 	cliApp.SecondColFlex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(cliApp.CmdSetDescrText, 0, 1, false).
+		AddItem(cliApp.CmdSetDescrTextView, 0, 1, false).
 		AddItem(cliApp.CmdList, 0, 3, false)
 
-	// Place the elements in a flex layout
-	cliApp.MainView = tview.NewFlex().
+	// Place the columns in a flex layout
+	cliApp.MainColsFlex = tview.NewFlex().
 		SetDirection(tview.FlexColumn).
 		AddItem(cliApp.CmdSetList, 0, 1, true).
 		AddItem(cliApp.SecondColFlex, 0, 1, false).
-		AddItem(cliApp.CmdContentText, 0, 2, false)
+		AddItem(cliApp.CmdContentTextView, 0, 2, false)
+
+	// Place everything in the main flex
+	cliApp.MainView = tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(cliApp.MainColsFlex, 0, 20, true).
+		AddItem(cliApp.StatusTextView, 0, 1, false).
+		AddItem(cliApp.ShortcutsInfoTextView, 0, 1, false)
 	
 	cliApp.setupCmdSets()
-
+	cliApp.setupStatusBar()
+	cliApp.setupShortcutsInfo()
 	cliApp.setupInputHandling()
 }
 
 func (cliApp* CliApp) setupCmdSets() {
 	cliApp.CmdSetList.Clear()
-	for _, cmdSet := range cliApp.CmdSets {
-		cliApp.CmdSetList.AddItem(cmdSet.Title, "", 0, func() {
-			// The function to run when a command set is selected
-			cliApp.App.SetFocus(cliApp.CmdList)
-		})
+	if cliApp.CmdSets != nil {
+		for _, cmdSet := range cliApp.CmdSets {
+			cliApp.CmdSetList.AddItem(cmdSet.Title, "", 0, func() {
+				// The function to run when a command set is selected
+				cliApp.App.SetFocus(cliApp.CmdList)
+			})
+		}
+
+		cliApp.CmdSetList.SetChangedFunc(cliApp.setupCmds)
+
+		cliApp.setupCmds(cliApp.CurrentCmdSetIdx, "", "", 0)
 	}
-
-	cliApp.CmdSetList.SetChangedFunc(cliApp.setupCmds)
-
-	cliApp.setupCmds(cliApp.CurrentCmdSetIdx, "", "", 0)
 }
 
 func (cliApp* CliApp) setupCmds(index int, mainText string, secondaryText string, shortcut rune) {
 	cliApp.CurrentCmdSetIdx = index
-	cliApp.CmdSetDescrText.SetText(fmt.Sprintf("[::i]%s[::-]", cliApp.CmdSets[index].Description))
+	cliApp.CmdSetDescrTextView.SetText(fmt.Sprintf("[::i]%s[::-]", cliApp.CmdSets[index].Description))
 
 	cliApp.CmdList.Clear()
 	for _, cmd := range cliApp.CmdSets[index].Commands {
 		cliApp.CmdList.AddItem(cmd.Name, "", 0, func() {
 			// The function to run when a command is selected
-			cliApp.App.SetFocus(cliApp.CmdContentText)
+			cliApp.App.SetFocus(cliApp.CmdContentTextView)
 		})
 	}
 
@@ -130,9 +169,32 @@ func (cliApp* CliApp) setupCmds(index int, mainText string, secondaryText string
 func (cliApp* CliApp) setupCmdContent(index int, mainText string, secondaryText string, shortcut rune) {
 	cliApp.CurrentCmdIdx = index
 	command := cliApp.CmdSets[cliApp.CurrentCmdSetIdx].Commands[index]
-	cliApp.CmdContentText.SetText(fmt.Sprintf("[::i]%s[::-]\n\n\n\n%s", command.Description, command.Command))
+	cliApp.CmdContentTextView.SetText(fmt.Sprintf("[::b]%s[::-]\n\n[::i]%s[::-]\n\n\n\n%s", command.Name, command.Description, command.Command))
 
 	// TODO: Improve the formatting of this
+}
+
+func (cliApp* CliApp) setupStatusBar() {
+	// Constantly check and print status changes
+	go func() {
+		var status string
+		for {
+			status = <-cliApp.StatusCh
+			cliApp.StatusTextView.SetText(status)
+			cliApp.App.Draw()
+		}
+	}()
+}
+
+func (cliApp* CliApp) setupShortcutsInfo() {
+	shortcutsInfoText := ""
+	shortcutsInfoText += "[black:white:b]hjkl[-:-:-] Move"
+	shortcutsInfoText += "\t\t[black:white:b]Enter[-:-:-] Select"
+	shortcutsInfoText += "\t\t[black:white:b]Esc[-:-:-] Move back"
+	shortcutsInfoText += "\t\t[black:white:b]y[-:-:-] Copy shortcut"
+	shortcutsInfoText += "\t\t[black:white:b]q[-:-:-] Close"
+
+	cliApp.ShortcutsInfoTextView.SetText(shortcutsInfoText)
 }
 
 func (cliApp* CliApp) setupInputHandling() {
@@ -174,7 +236,7 @@ func (cliApp* CliApp) setupInputHandling() {
 				cliApp.App.SetFocus(cliApp.CmdList)
 				return nil
 			} else if list == cliApp.CmdList {
-				cliApp.App.SetFocus(cliApp.CmdContentText)
+				cliApp.App.SetFocus(cliApp.CmdContentTextView)
 				return nil
 			}
 		case 'h': // Move to the left
@@ -208,7 +270,7 @@ func (cliApp* CliApp) setupInputHandling() {
 	})
 
 	// Input in the command content TextView
-	cliApp.CmdContentText.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	cliApp.CmdContentTextView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Rune() {
 		case 'h':
 			cliApp.App.SetFocus(cliApp.CmdList)
